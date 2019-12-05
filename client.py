@@ -52,7 +52,6 @@ while fileSize>=0:
 def checksum(segment, length):
     if (length % 2 != 0):
         segment += "0".encode('utf-8')
-
     x = segment[0] + ((segment[1]) << 8)
     y = (x & 0xffff) + (x >> 16)
 
@@ -65,22 +64,23 @@ dataPkt='0101010101010101'
 buffer=windowSize
 prevSqn=sqnNum=0
 
-def rdt_send():
+def rdt_send(clientSock):
     global buffer,sqnNum
     while sqnNum < len(segments):
         while buffer > 0:
             sqnSent='{:032b}'.format(sqnNum)
-            checksumSent=checksum(segments[sqnNum:sqnNum+1],len(segments[sqnNum:sqnNum+1]))
-            segmentSent=sqnSent.encode('utf-8')+checksumSent.encode('utf-8')+dataPkt.encode('utf-8')+segments[sqnNum:sqnNum+1]
+            checksumSent=checksum(segments[sqnNum],len(segments[sqnNum]))
+            segmentSent=sqnSent.encode('utf-8')+checksumSent.encode('utf-8')+dataPkt.encode('utf-8')+segments[sqnNum]
             sqnNum = (sqnNum+1)%2**31-1
             buffer-=1
             clientSock.sendto(segmentSent, server)
 
-def acknowledgments():
+def acknowledgments(conn):
     global buffer,sqnNum,prevSqn
     while True:
         try:
-            lastAck=clientSock.recv(8)
+            lastAck=conn.recv(1024)
+            lastAck=lastAck.decode('utf-8')
             if lastAck[0:32]=='{:032b}'.format(prevSqn):
                 buffer+=1
                 prevSqn+=1
@@ -89,11 +89,17 @@ def acknowledgments():
             buffer=windowSize
             sqnNum=prevSqn
         if sqnNum==len(segments):
+            clientSock.sendto("0000000000000000000000000000000000000000000000000000000000000000Done".encode('utf-8'), server)
+            clientSock.close()
             break
 
 sendThread=threading.Thread(target=rdt_send, args=(clientSock,))
 ackThread=threading.Thread(target=acknowledgments, args=(clientSock,))
 sendThread.start()
 ackThread.start()
-sendThread.join()
-ackThread.join()
+
+while True:
+    if KeyboardInterrupt:
+        sendThread.join()
+        ackThread.join()
+        raise SystemExit

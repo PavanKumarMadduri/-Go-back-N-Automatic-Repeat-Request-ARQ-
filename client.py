@@ -6,6 +6,7 @@ import threading
 
 if len(sys.argv)<6:
     print("Wrong Input")
+    raise SystemExit
 
 serverName=str(sys.argv[1])
 sportNum=int(sys.argv[2])
@@ -63,20 +64,21 @@ def checksum(segment, length):
 dataPkt='0101010101010101'
 buffer=windowSize
 prevSqn=sqnNum=0
+flag=1
 
 def rdt_send(clientSock):
-    global buffer,sqnNum
-    while sqnNum < len(segments):
-        while buffer > 0:
+    global buffer,sqnNum,flag
+    while flag:
+        while buffer > 0 and sqnNum < len(segments):
             sqnSent='{:032b}'.format(sqnNum)
             checksumSent=checksum(segments[sqnNum],len(segments[sqnNum]))
             segmentSent=sqnSent.encode('utf-8')+checksumSent.encode('utf-8')+dataPkt.encode('utf-8')+segments[sqnNum]
-            sqnNum = (sqnNum+1)%2**31-1
+            sqnNum = (sqnNum+1)%(2**31-1)
             buffer-=1
             clientSock.sendto(segmentSent, server)
 
 def acknowledgments(conn):
-    global buffer,sqnNum,prevSqn
+    global buffer,sqnNum,prevSqn,flag
     while True:
         try:
             lastAck=conn.recv(1024)
@@ -88,9 +90,11 @@ def acknowledgments(conn):
             print("Timeout, sequence number = ",prevSqn)
             buffer=windowSize
             sqnNum=prevSqn
-        if sqnNum==len(segments):
-            clientSock.sendto("0000000000000000000000000000000000000000000000000000000000000000Done".encode('utf-8'), server)
+        if prevSqn==len(segments):
+            clientSock.sendto("Done".encode('utf-8'), server)
             clientSock.close()
+            print("File has been sent")
+            flag=0
             break
 
 sendThread=threading.Thread(target=rdt_send, args=(clientSock,))
@@ -100,6 +104,6 @@ ackThread.start()
 
 while True:
     if KeyboardInterrupt:
-        sendThread.join()
-        ackThread.join()
+        sendThread.join(timeout=0.5)
+        ackThread.join(timeout=0.5)
         raise SystemExit

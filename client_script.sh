@@ -20,7 +20,7 @@ for i in {100..1000..100}
                 count=5
                 while [ $count -gt 0 ]
                         do
-                                python3 client.py $server_ip 7735 $filename 64 $i
+                                python3 client.py $server_ip 7735 $filename 64 $i | tail -n 1
                                 count=$((count-1))
                         done
         done

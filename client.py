@@ -30,7 +30,7 @@ try:
     clientSock.bind(client)
     print("Started listening on", client)
     clientSock.settimeout(0.5)
-    print("Timeout value is set to 0.05 seconds")
+    print("Timeout value is set to 0.5 seconds")
 except socket.error:
     print("Port already in use")
     raise SystemExit

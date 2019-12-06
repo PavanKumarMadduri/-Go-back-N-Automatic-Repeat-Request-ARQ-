@@ -29,7 +29,7 @@ clientSock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 try:
     clientSock.bind(client)
     print("Started listening on", client)
-    clientSock.settimeout(0.05)
+    clientSock.settimeout(0.5)
     print("Timeout value is set to 0.05 seconds")
 except socket.error:
     print("Port already in use")
@@ -46,6 +46,8 @@ end=MSS
 while fileSize>=0:
     if fileSize < MSS:
         end=start+fileSize
+    if start==end:
+        break
     segments.append(data[start:end])
     start+=MSS
     end+=MSS
@@ -86,7 +88,7 @@ def rdt_send(clientSock):
 
 def acknowledgments(conn):
     global buffer,sqnNum,prevSqn,flag,endTime
-    while True:
+    while flag:
         try:
             lastAck=conn.recv(1024)
             lastAck=lastAck.decode('utf-8')
@@ -102,8 +104,9 @@ def acknowledgments(conn):
             clientSock.close()
             print("File has been sent")
             endTime=datetime.datetime.now().strftime(timeFormat)
+            RTT=datetime.datetime.strptime(str(endTime),timeFormat)- datetime.datetime.strptime(str(startTime),timeFormat)
+            print(RTT)
             flag=0
-            break
 
 sendThread=threading.Thread(target=rdt_send, args=(clientSock,))
 ackThread=threading.Thread(target=acknowledgments, args=(clientSock,))
@@ -111,5 +114,3 @@ sendThread.start()
 ackThread.start()
 sendThread.join(timeout=0.5)
 ackThread.join(timeout=0.5)
-RTT=datetime.datetime.strptime(startTime,timeFormat)- datetime.datetime.strptime(endTime,timeFormat)
-print(RTT)

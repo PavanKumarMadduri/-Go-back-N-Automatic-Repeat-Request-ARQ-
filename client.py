@@ -3,6 +3,7 @@ import sys
 import os
 import random
 import threading
+import datetime
 
 if len(sys.argv)<6:
     print("Wrong Input")
@@ -66,8 +67,14 @@ buffer=windowSize
 prevSqn=sqnNum=0
 flag=1
 
+startTime=0
+endTime=0
+timeFormat="%H:%M:%S.%f"
+
 def rdt_send(clientSock):
-    global buffer,sqnNum,flag
+    global buffer,sqnNum,flag,startTime
+    print("Starting the file transfer")
+    startTime=datetime.datetime.now().strftime(timeFormat)
     while flag:
         while buffer > 0 and sqnNum < len(segments):
             sqnSent='{:032b}'.format(sqnNum)
@@ -78,7 +85,7 @@ def rdt_send(clientSock):
             clientSock.sendto(segmentSent, server)
 
 def acknowledgments(conn):
-    global buffer,sqnNum,prevSqn,flag
+    global buffer,sqnNum,prevSqn,flag,endTime
     while True:
         try:
             lastAck=conn.recv(1024)
@@ -94,6 +101,7 @@ def acknowledgments(conn):
             clientSock.sendto("Done".encode('utf-8'), server)
             clientSock.close()
             print("File has been sent")
+            endTime=datetime.datetime.now().strftime(timeFormat)
             flag=0
             break
 
@@ -101,9 +109,7 @@ sendThread=threading.Thread(target=rdt_send, args=(clientSock,))
 ackThread=threading.Thread(target=acknowledgments, args=(clientSock,))
 sendThread.start()
 ackThread.start()
-
-while True:
-    if KeyboardInterrupt:
-        sendThread.join(timeout=0.5)
-        ackThread.join(timeout=0.5)
-        raise SystemExit
+sendThread.join(timeout=0.5)
+ackThread.join(timeout=0.5)
+RTT=datetime.datetime.strptime(startTime,timeFormat)- datetime.datetime.strptime(endTime,timeFormat)
+print(RTT)

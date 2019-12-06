@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
-read -p "Enter Server IP:" server_ip
-read -p "Enter Filename:" filename
+server_ip=$1
+filename=$2
 
 for i in 1 2 4 8 16 32 64 128 256 512 1024
 	do
@@ -20,7 +20,7 @@ for i in {100..1000..100}
                 count=5
                 while [ $count -gt 0 ]
                         do
-                                python3 client.py $server_ip 7735 $filename 64 $i | tail -n 1
+                                python3 client.py $server_ip 7735 $filename 64 $i
                                 count=$((count-1))
                         done
         done

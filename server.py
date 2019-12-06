@@ -49,18 +49,18 @@ while True:
     checksumRcvd=int(data[32:48],2)
     payload=data[64:]
 
-    if sqnRcvd > sqnNum:
+    if sqnRcvd > sqnNum or checksum(payload, len(payload))!=checksumRcvd:
         continue
-    elif round(random.random(),2) <= pktLossProb or checksum(data[64:], len(data[64:]))!=checksumRcvd:
-        print("Packet loss, sequence number = ",sqnNum)
     elif sqnRcvd < sqnNum:
         dataPkt='{:032b}'.format(sqnRcvd)+'{:016b}'.format(zeroPkt)+'{:016b}'.format(ackPkt)
         serverSock.sendto(dataPkt.encode('utf-8'),addr)
+    elif sqnRcvd == sqnNum and ( round(random.random(),2) <= pktLossProb ):
+        print("Packet loss, sequence number = ",sqnNum)
     elif sqnRcvd == sqnNum:
         dataPkt='{:032b}'.format(sqnNum)+'{:016b}'.format(zeroPkt)+'{:016b}'.format(ackPkt)
         serverSock.sendto(dataPkt.encode('utf-8'),addr)
         f.write(payload.decode('utf-8'))
         sqnNum+=1
-    
+
 serverSock.close()
 f.close()

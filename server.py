@@ -39,7 +39,7 @@ zeroPkt=0
 f=open(fileName, 'w')
 
 while True:
-    data, addr=serverSock.recvfrom(1024)
+    data, addr=serverSock.recvfrom(2048)
     
     if data.decode('utf-8') == "Done":
         print("Data has been successfully written into the file",fileName)
